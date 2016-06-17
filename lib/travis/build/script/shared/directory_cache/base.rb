@@ -14,8 +14,10 @@ module Travis
 
           VALIDATE = {
             bucket:            'bucket name',
+            bucket_prefix:     'bucket prefix',
             access_key_id:     'access key id',
-            secret_access_key: 'secret access key'
+            secret_access_key: 'secret access key',
+            security_token:    'security token'
           }
 
           CURL_FORMAT = <<-EOF
@@ -80,6 +82,7 @@ module Travis
             else
               Signatures::AWS4Signature.new(
                 key: key_pair,
+                security_token: options[:security_token],
                 http_verb: verb,
                 location: location(path),
                 expires: options[:expires],
@@ -145,11 +148,11 @@ module Travis
           end
 
           def fetch_url(branch = group, extras = false)
-            url('GET', prefixed(branch, extras), expires: fetch_timeout)
+            url('GET', prefixed(branch, extras), expires: fetch_timeout, security_token: security_token)
           end
 
           def push_url(branch = group)
-            url('PUT', prefixed(branch, true), expires: push_timeout)
+            url('PUT', prefixed(branch, true), expires: push_timeout, security_token: security_token)
           end
 
           def fold(message = nil)
@@ -212,7 +215,7 @@ module Travis
               if ! extras
                 slug_local = slug.gsub(/^cache(.+?)(?=--)/,'cache')
               end
-              args = [data.github_id, branch, slug_local].compact
+              args = [data_store_options[:bucket_prefix], data.github_id, branch, slug_local].compact
               args.map! { |arg| arg.to_s.gsub(/[^\w\.\_\-]+/, '') }
               '/' << args.join('/') << '.tgz'
             end
@@ -223,6 +226,10 @@ module Travis
 
             def key_pair
               @key_pair ||= KeyPair.new(data_store_options[:access_key_id], data_store_options[:secret_access_key])
+            end
+
+            def security_token
+              data_store_options.fetch(:security_token)
             end
 
             def data_store

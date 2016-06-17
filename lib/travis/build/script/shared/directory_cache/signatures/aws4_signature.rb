@@ -9,8 +9,9 @@ module Travis
       module DirectoryCache
         class Signatures
           class AWS4Signature
-            def initialize(key:, http_verb:, location:, expires:, timestamp: Time.now)
+            def initialize(key:, security_token:, http_verb:, location:, expires:, timestamp: Time.now)
               @key_pair = key
+              @security_token = security_token
               @verb = http_verb
               @location = location
               @expires = expires
@@ -46,8 +47,7 @@ module Travis
             end
 
             def request_sha
-              OpenSSL::Digest::SHA256.hexdigest(
-                [
+                request = [
                   @verb,
                   @location.path,
                   query_string,
@@ -55,7 +55,7 @@ module Travis
                   'host',
                   'UNSIGNED-PAYLOAD'
                 ].join("\n")
-              )
+              OpenSSL::Digest::SHA256.hexdigest(request)
             end
 
             def canonical_query_params
@@ -64,7 +64,8 @@ module Travis
                 'X-Amz-Credential' => "#{@key_pair.id}/#{date}/#{@location.region}/s3/aws4_request",
                 'X-Amz-Date' => timestamp,
                 'X-Amz-Expires' => @expires,
-                'X-Amz-SignedHeaders' => 'host',
+                'X-Amz-Security-Token' => @security_token,
+                'X-Amz-SignedHeaders' => 'host'
               }
             end
 
