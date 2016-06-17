@@ -80,6 +80,7 @@ module Travis
             else
               Signatures::AWS4Signature.new(
                 key: key_pair,
+                token: options[:token],
                 http_verb: verb,
                 location: location(path),
                 expires: options[:expires],
@@ -149,7 +150,7 @@ module Travis
           end
 
           def push_url(branch = group)
-            url('PUT', prefixed(branch, true), expires: push_timeout)
+            url('PUT', prefixed(branch, true), expires: push_timeout, token: token)
           end
 
           def fold(message = nil)
@@ -223,6 +224,10 @@ module Travis
 
             def key_pair
               @key_pair ||= KeyPair.new(data_store_options[:access_key_id], data_store_options[:secret_access_key])
+            end
+
+            def token
+              data_store_options.fetch(:token)
             end
 
             def data_store
