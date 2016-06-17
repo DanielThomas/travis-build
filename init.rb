@@ -1,5 +1,60 @@
 module Travis
   module CLI
+    class Fetch < RepoCommand
+      description "fetches a resource from s3"
+
+      def setup
+        error "run command is not available on #{RUBY_VERSION}" if RUBY_VERSION < '1.9.3'
+        $:.unshift File.expand_path('../lib', __FILE__)
+        require 'travis/build'
+      end
+
+      def run(*arg)
+        cache_options = {
+          fetch_timeout: 20,
+          push_timeout: 30,
+          type: 's3',
+          s3: {
+            :scheme => 'http',
+            :bucket => ENV['AWS_S3_BUCKET'],
+            :access_key_id => ENV['AWS_ACCESS_KEY_ID'],
+            :secret_access_key => ENV['AWS_SECRET_ACCESS_KEY'],
+            :token => ENV['AWS_SESSION_TOKEN']
+          }
+        }
+        payload = {
+          'type' => 'test',
+          'config' => {
+            'os' => 'linux',
+            'env' => ['FOO=foo', 'SECURE BAR=bar']
+          },
+          'repository' => {
+            'github_id' => 'niagara',
+            'slug' => 'travis-ci/travis-ci',
+            'source_url' => 'git://github.com/travis-ci/travis-ci.git'
+          },
+          'build' => {
+            'id' => '1',
+            'number' => '1',
+            'previous_state' => 'failed'
+          },
+          'job' => {
+            'id' => '1',
+            'number' => '1.1',
+            'commit' => '313f61b',
+            'branch' => 'master',
+            'commit_range' => '313f61b..313f61a',
+            'commit_message' => 'the commit message',
+            'secure_env_enabled' => true
+          }
+        }
+        data = payload.deep_merge(config: {}, cache_options: cache_options, job: { branch: "master", pull_request: nil })
+        sh = Travis::Shell::Builder.new
+        directory_cache = Travis::Build::Script::DirectoryCache.const_get("S3").new(sh, Travis::Build::Data.new(data), "test", Time.now)
+        puts directory_cache.fetch_url
+      end
+    end
+
     class Compile < RepoCommand
       description "compiles a build script from .travis.yml"
 

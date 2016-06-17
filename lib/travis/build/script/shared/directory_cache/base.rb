@@ -146,7 +146,7 @@ module Travis
           end
 
           def fetch_url(branch = group, extras = false)
-            url('GET', prefixed(branch, extras), expires: fetch_timeout)
+            url('GET', prefixed(branch, extras), expires: fetch_timeout, token: token)
           end
 
           def push_url(branch = group)
