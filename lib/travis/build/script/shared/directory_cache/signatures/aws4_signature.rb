@@ -20,6 +20,7 @@ module Travis
 
             def to_uri
               query = canonical_query_params.dup
+              query["X-Amz-Security-Token"] = @token
               query["X-Amz-Signature"] = OpenSSL::HMAC.hexdigest("sha256", signing_key, string_to_sign)
 
               Addressable::URI.new(
@@ -65,8 +66,7 @@ module Travis
                 'X-Amz-Credential' => "#{@key_pair.id}/#{date}/#{@location.region}/s3/aws4_request",
                 'X-Amz-Date' => timestamp,
                 'X-Amz-Expires' => @expires,
-                'X-Amz-SignedHeaders' => 'host',
-                'X-Amz-Security-Token' => @token
+                'X-Amz-SignedHeaders' => 'host'
               }
             end
 
